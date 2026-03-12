@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+
+# Environment
+.env
+
+# HuggingFace model cache (gerado automaticamente, pode ser grande ~400MB+)
+.hf_cache/
+# Database
+*.db
+*.sqlite
+
+# OS
+.DS_Store
