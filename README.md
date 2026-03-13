@@ -18,13 +18,16 @@ API para scraping de reviews da Google Play Store e Apple App Store, com armazen
 ```
 review-apps/
 ├── app/
-│   ├── main.py              # Entry point FastAPI
+│   ├── main.py              # Entry point FastAPI & Configuração do Scheduler
 │   ├── routes/
-│   │   └── scraper.py       # Endpoints de scraping
+│   │   ├── scraper.py       # Endpoints de scraping manual
+│   │   ├── reviews.py       # Consulta de reviews salvos no banco
+│   │   └── schedule.py      # Configuração do monitoramento automático
 │   ├── services/
 │   │   ├── play_store.py    # Lógica Play Store
 │   │   ├── apple_store.py   # Lógica App Store
-│   │   └── database_service.py # Persistência SQLite
+│   │   ├── database_service.py # Persistência e CRUD SQLite
+│   │   └── scheduler_service.py # Lógica de busca de hora em hora (APScheduler)
 │   └── schemas/
 │       └── review.py        # Modelos Pydantic
 ├── reviews.db               # Banco de dados local (gerado automaticamente)
@@ -43,103 +46,99 @@ source venv/bin/activate     # Linux/macOS
 
 # 2. Instalar dependências
 pip install -r requirements.txt
-pip install requests # Necessário para App Store e SQLite se não estiver no requirements
 ```
 
 ## 🚀 Como rodar a API
 
-Certifique-se de que o ambiente virtual está ativado e as dependências instaladas. Você tem duas opções para iniciar o servidor local:
+Certifique-se de que o ambiente virtual está ativado. O servidor iniciará automaticamente o **Scheduler** para buscas de hora em hora.
 
-**Opção 1: Usando o Uvicorn diretamente**
-```bash
-uvicorn app.main:app --reload --port 8000
-```
-
-**Opção 2: Executando o módulo principal (via Python)**
+**Rodar localmente:**
 ```bash
 python -m app.main
 ```
 
-Após iniciar o servidor, você poderá acessar:
+**Rodar no servidor (Produção):**
+Para manter o processo rodando após fechar o terminal:
+```bash
+nohup ./venv/bin/python -m app.main > out.log 2>&1 &
+```
 
-- **API Base**: [http://localhost:8000](http://localhost:8000)
-- **Swagger UI (Documentação Interativa)**: [http://localhost:8000/docs](http://localhost:8000/docs)
-- **ReDoc (Documentação Alternativa)**: [http://localhost:8000/redoc](http://localhost:8000/redoc)
+---
 
-## Endpoints
+## 🛠 Endpoints da API
 
-### `POST /api/scrape`
+### 1. Reviews (Banco de Dados)
 
-Busca reviews e informações do app na loja especificada e salva no SQLite.
+#### `GET /api/reviews/`
+Retorna todos os reviews armazenados no SQLite capturados tanto manual quanto automaticamente.
+
+#### `GET /api/reviews/{package}`
+Retorna os reviews de um app específico filtrados pelo ID do pacote (ex: `com.itau.investimentos`).
+
+---
+
+### 2. Agendamento (Schedule)
+
+O sistema possui um agendador que busca reviews de hora em hora para os apps configurados.
+
+#### `GET /api/schedule/apps`
+Lista todos os apps atualmente monitorados pelo scheduler.
+
+#### `POST /api/schedule/apps`
+Adiciona um novo app ao monitoramento automático.
+**Body:**
+```json
+{
+  "package": "com.itau.investimentos",
+  "store": "google_play",
+  "lang": "pt",
+  "country": "br"
+}
+```
+
+#### `DELETE /api/schedule/apps/{package}`
+Remove um app do monitoramento automático.
+
+#### `POST /api/schedule/run-now`
+Dispara o processo de scraping imediatamente para todos os apps monitorados.
+
+---
+
+### 3. Scraping Manual
+
+#### `POST /api/scrape`
+Busca reviews e informações do app na loja especificada e salva no SQLite imediatamente.
 
 **Body:**
 ```json
 {
   "package": "com.itau.investimentos",
-  "store": "apple_store",  // "google_play" (default) ou "apple_store"
+  "store": "apple_store",
   "lang": "pt",
   "country": "br",
   "count": 100
 }
 ```
 
-**Response:**
-```json
-{
-  "app_info": {
-    "package": "com.itau.investimentos",
-    "title": "íon Itaú: investir com taxa 0",
-    "version": "3.109.0",
-    "score": 4.73,
-    "ratings": 26451,
-    "developer": "Itaú Unibanco S.A.",
-    "url": "https..."
-  },
-  "reviews": [
-    {
-      "review_id": "13828441150",
-      "user_name": "claudiomfs",
-      "rating": 1,
-      "content": "Ao tentar acessar o app...",
-      "app_version": "3.107.0",
-      "date": "2026-03-08T16:39:04-07:00"
-    }
-  ],
-  "total": 1,
-  "lang": "pt",
-  "country": "br",
-  "store": "apple_store"
-}
-```
-
----
-
-### `GET /api/app-info/{package}`
-
+#### `GET /api/app-info/{package}`
 Retorna somente os metadados do app.
 
-```bash
-curl "http://localhost:8000/api/app-info/com.itau.investimentos?store=apple_store&lang=pt&country=br"
-```
-
 ---
 
-### `GET /health`
+### 4. Status
 
-Health check.
-
-```bash
-curl http://localhost:8000/health
-# {"status": "ok", "version": "1.0.0"}
-```
+#### `GET /health`
+Health check do sistema.
 
 ## Banco de Dados (SQLite)
 
-Os reviews são salvos automaticamente na tabela `review_store` do arquivo `reviews.db`.
-Para consultar via terminal:
+Os dados são salvos no arquivo `reviews.db` em duas tabelas principais:
+- `review_store`: Armazena os reviews capturados.
+- `monitored_apps`: Armazena a configuração do scheduler.
 
+Para consultar via terminal:
 ```bash
-sqlite3 reviews.db "SELECT * FROM review_store ORDER BY created_at DESC LIMIT 5;"
+sqlite3 reviews.db "SELECT * FROM review_store ORDER BY date DESC LIMIT 5;"
 ```
 
 ## Roadmap
