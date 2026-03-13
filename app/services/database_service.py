@@ -34,6 +34,17 @@ def init_db():
             )
         ''')
         
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS monitored_apps (
+                package TEXT PRIMARY KEY,
+                store TEXT NOT NULL,
+                lang TEXT DEFAULT 'pt',
+                country TEXT DEFAULT 'br',
+                is_active INTEGER DEFAULT 1,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
         conn.commit()
         conn.close()
         logger.info(f"Banco de dados SQLite inicializado em: {DB_PATH}")
@@ -86,6 +97,76 @@ def save_reviews_to_sqlite(reviews: List[ReviewItem], store: str, package: str):
         return True
     except Exception as e:
         logger.error(f"Erro ao salvar reviews no SQLite: {e}")
+        return False
+
+def get_all_reviews():
+    """Retorna todos os reviews armazenados no banco de dados."""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT * FROM review_store ORDER BY date DESC")
+        rows = cursor.fetchall()
+        
+        reviews = []
+        for row in rows:
+            reviews.append(dict(row))
+            
+        conn.close()
+        return reviews
+    except Exception as e:
+        logger.error(f"Erro ao buscar todos os reviews: {e}")
+        return []
+
+def get_monitored_apps():
+    """Retorna a lista de apps configurados para o schedule."""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT * FROM monitored_apps WHERE is_active = 1")
+        rows = cursor.fetchall()
+        
+        apps = [dict(row) for row in rows]
+        conn.close()
+        return apps
+    except Exception as e:
+        logger.error(f"Erro ao buscar apps monitorados: {e}")
+        return []
+
+def add_monitored_app(package: str, store: str, lang: str = "pt", country: str = "br"):
+    """Adiciona um app para ser monitorado de hora em hora."""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            INSERT OR REPLACE INTO monitored_apps (package, store, lang, country, is_active)
+            VALUES (?, ?, ?, ?, 1)
+        ''', (package, store, lang, country))
+        
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        logger.error(f"Erro ao adicionar app monitorado: {e}")
+        return False
+
+def remove_monitored_app(package: str):
+    """Remove um app do monitoramento."""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        cursor.execute("DELETE FROM monitored_apps WHERE package = ?", (package,))
+        
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        logger.error(f"Erro ao remover app monitorado: {e}")
         return False
 
 # Inicializa o banco ao importar o módulo

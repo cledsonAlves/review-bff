@@ -45,3 +45,16 @@ class ScrapeResponse(BaseModel):
     country: str
     store: str
 
+class MonitoredApp(BaseModel):
+    package: str
+    store: str
+    lang: str = "pt"
+    country: str = "br"
+    is_active: bool = True
+
+class MonitoredAppCreate(BaseModel):
+    package: str
+    store: str = "google_play"
+    lang: str = "pt"
+    country: str = "br"
+

@@ -6,6 +6,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.routes.scraper import router as scraper_router
+from app.routes.reviews import router as reviews_router
+from app.routes.schedule import router as schedule_router
+from app.services.scheduler_service import start_scheduler, stop_scheduler
 
 load_dotenv()
 
@@ -33,6 +36,20 @@ app.add_middleware(
 
 # Rotas
 app.include_router(scraper_router)
+app.include_router(reviews_router)
+app.include_router(schedule_router)
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Inicia o scheduler ao subir a aplicação."""
+    start_scheduler()
+
+
+@app.on_event("shutdown")
+def shutdown_event():
+    """Para o scheduler ao desligar a aplicação."""
+    stop_scheduler()
 
 
 @app.get("/health", tags=["Status"])
