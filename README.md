@@ -70,7 +70,11 @@ nohup ./venv/bin/python -m app.main > out.log 2>&1 &
 ### 1. Reviews (Banco de Dados)
 
 #### `GET /api/reviews/`
-Retorna todos os reviews armazenados no SQLite capturados tanto manual quanto automaticamente.
+Retorna os reviews salvos no banco. Aceita parâmetros opcionais para filtrar por plataforma:
+*   **package**: ID do pacote (ex: `com.itau.investimentos`)
+*   **store**: Loja (`google_play` ou `apple_store`)
+
+**Exemplo:** `/api/reviews/?package=com.itau.investimentos&store=apple_store`
 
 #### `GET /api/reviews/{package}`
 Retorna os reviews de um app específico filtrados pelo ID do pacote (ex: `com.itau.investimentos`).

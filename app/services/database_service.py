@@ -136,6 +136,26 @@ def get_reviews_by_package(package: str):
         logger.error(f"Erro ao buscar reviews para o pacote {package}: {e}")
         return []
 
+def get_reviews_by_package_and_store(package: str, store: str):
+    """Retorna os reviews filtrados por um pacote e loja específicos."""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute(
+            "SELECT * FROM review_store WHERE package = ? AND store = ? ORDER BY date DESC", 
+            (package, store)
+        )
+        rows = cursor.fetchall()
+        
+        reviews = [dict(row) for row in rows]
+        conn.close()
+        return reviews
+    except Exception as e:
+        logger.error(f"Erro ao buscar reviews para o pacote {package} na loja {store}: {e}")
+        return []
+
 def get_monitored_apps():
     """Retorna a lista de apps configurados para o schedule."""
     try:
