@@ -4,6 +4,8 @@ python-dotenv
 google-play-scraper
 app-store-scraper
 requests
+urllib3
+six
 pydantic
 apscheduler
 watchfiles
