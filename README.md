@@ -145,7 +145,6 @@ sqlite3 reviews.db "SELECT * FROM review_store ORDER BY date DESC LIMIT 5;"
 
 - [x] MVP: Scraping API (Google Play & App Store)
 - [x] Persistência Local (SQLite)
-- [ ] Embeddings com Sentence Transformers
-- [ ] Análise de sentimentos (positivo/neutro/negativo)
-- [ ] Modelagem de tópicos com BERTopic
-- [ ] Dashboard de resultados
+- [x] Agendamento (Schedule) de busca automática de hora em hora
+- [ ] Dashboard de resultados simples no Frontend
+- [ ] Exportação de dados (CSV/JSON)
